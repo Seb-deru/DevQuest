@@ -1,8 +1,21 @@
 ﻿namespace DevQuest.Application.Identity.GetUserById;
-public class GetUserByIdQueryHandler
+
+public class GetUserByIdQueryHandler : IGetUserByIdQueryHandler
 {
-    public GetUserByIdResponse Handle(Guid userId)
+    private readonly IUserRepository _userRepository;
+
+    public GetUserByIdQueryHandler(IUserRepository userRepository)
     {
-        return new(userId, "dummy", "dummy@dummy.dummy");
+        _userRepository = userRepository;
+    }
+
+    public async Task<GetUserByIdResponse?> Handle(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+
+        if (user == null)
+            return null;
+
+        return new GetUserByIdResponse(user.Id, user.UserName, user.Email);
     }
 }

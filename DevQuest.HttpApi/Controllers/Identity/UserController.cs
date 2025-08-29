@@ -2,15 +2,26 @@
 using Microsoft.AspNetCore.Mvc;
 
 namespace DevQuest.HttpApi.Controllers.Identity;
+
 [ApiController]
 [Route("[controller]")]
 public class UserController : ControllerBase
 {
-    [HttpGet]
-    public GetUserByIdResponse Get([FromQuery] Guid userId)
+    private readonly IGetUserByIdQueryHandler _getUserByIdHandler;
+
+    public UserController(IGetUserByIdQueryHandler getUserByIdHandler)
     {
-        var handler = new GetUserByIdQueryHandler();
-        var response = handler.Handle(userId);
-        return response;
+        _getUserByIdHandler = getUserByIdHandler;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<GetUserByIdResponse>> Get([FromQuery] Guid userId)
+    {
+        var response = await _getUserByIdHandler.Handle(userId);
+        
+        if (response == null)
+            return NotFound();
+
+        return Ok(response);
     }
 }
