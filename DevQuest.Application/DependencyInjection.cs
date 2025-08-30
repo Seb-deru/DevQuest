@@ -1,3 +1,4 @@
+using DevQuest.Application.Identity.CreateUser;
 using DevQuest.Application.Identity.GetUserById;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,6 +9,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IGetUserByIdQueryHandler, GetUserByIdQueryHandler>();
+        services.AddScoped<ICreateUserCommandHandler, CreateUserCommandHandler>();
 
         return services;
     }

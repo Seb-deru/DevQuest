@@ -14,6 +14,18 @@ public class InMemoryUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
+    public Task<User?> GetByEmailAsync(string email)
+    {
+        var user = _users.Values.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(user);
+    }
+
+    public Task<User?> GetByUserNameAsync(string userName)
+    {
+        var user = _users.Values.FirstOrDefault(u => u.UserName.Equals(userName, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(user);
+    }
+
     public Task InsertAsync(User user)
     {
         if (user == null)
