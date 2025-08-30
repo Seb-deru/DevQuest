@@ -5,10 +5,12 @@ namespace DevQuest.Application.Identity.CreateUser;
 public class CreateUserCommandHandler : ICreateUserCommandHandler
 {
     private readonly IUserRepository _userRepository;
+    private readonly IPasswordHashingService _passwordHashingService;
 
-    public CreateUserCommandHandler(IUserRepository userRepository)
+    public CreateUserCommandHandler(IUserRepository userRepository, IPasswordHashingService passwordHashingService)
     {
         _userRepository = userRepository;
+        _passwordHashingService = passwordHashingService;
     }
 
     public async Task<CreateUserResponse> Handle(CreateUserRequest request)
@@ -32,8 +34,8 @@ public class CreateUserCommandHandler : ICreateUserCommandHandler
         if (existingUserByUsername != null)
             throw new InvalidOperationException($"User with username '{request.UserName}' already exists");
 
-        // Hash the password (for now, we'll use a simple hash - in production, use proper password hashing)
-        var passwordHash = HashPassword(request.Password);
+        // Hash the password using the secure password hashing service
+        var passwordHash = _passwordHashingService.HashPassword(request.Password);
 
         // Create the user
         var user = new User(request.UserName, request.Email, passwordHash);
@@ -43,11 +45,5 @@ public class CreateUserCommandHandler : ICreateUserCommandHandler
 
         // Return response
         return new CreateUserResponse(user.Id, user.UserName, user.Email);
-    }
-
-    private static string HashPassword(string password)
-    {
-        // Simple hash for demonstration - in production, use BCrypt, Argon2, or similar
-        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"hashed_{password}"));
     }
 }

@@ -7,12 +7,14 @@ namespace DevQuest.Application.Tests.Identity.CreateUser;
 public class CreateUserCommandHandlerTests
 {
     private readonly Mock<IUserRepository> _userRepositoryMock;
+    private readonly Mock<IPasswordHashingService> _passwordHashingServiceMock;
     private readonly CreateUserCommandHandler _handler;
 
     public CreateUserCommandHandlerTests()
     {
         _userRepositoryMock = new Mock<IUserRepository>();
-        _handler = new CreateUserCommandHandler(_userRepositoryMock.Object);
+        _passwordHashingServiceMock = new Mock<IPasswordHashingService>();
+        _handler = new CreateUserCommandHandler(_userRepositoryMock.Object, _passwordHashingServiceMock.Object);
     }
 
     [Fact]
@@ -20,12 +22,16 @@ public class CreateUserCommandHandlerTests
     {
         // Arrange
         var request = new CreateUserRequest("testuser", "test@example.com", "password123");
+        var hashedPassword = "salt:hashedpassword";
         
         _userRepositoryMock.Setup(x => x.GetByEmailAsync(request.Email))
             .ReturnsAsync((User?)null);
         
         _userRepositoryMock.Setup(x => x.GetByUserNameAsync(request.UserName))
             .ReturnsAsync((User?)null);
+
+        _passwordHashingServiceMock.Setup(x => x.HashPassword(request.Password))
+            .Returns(hashedPassword);
 
         // Act
         var result = await _handler.Handle(request);
@@ -37,6 +43,7 @@ public class CreateUserCommandHandlerTests
         result.Id.Should().NotBeEmpty();
 
         _userRepositoryMock.Verify(x => x.InsertAsync(It.IsAny<User>()), Times.Once);
+        _passwordHashingServiceMock.Verify(x => x.HashPassword(request.Password), Times.Once);
     }
 
     [Theory]
@@ -98,6 +105,7 @@ public class CreateUserCommandHandlerTests
     {
         // Arrange
         var request = new CreateUserRequest("testuser", "test@example.com", "password123");
+        var hashedPassword = "salt:hashedpassword";
         User? capturedUser = null;
 
         _userRepositoryMock.Setup(x => x.GetByEmailAsync(request.Email))
@@ -105,6 +113,9 @@ public class CreateUserCommandHandlerTests
         
         _userRepositoryMock.Setup(x => x.GetByUserNameAsync(request.UserName))
             .ReturnsAsync((User?)null);
+
+        _passwordHashingServiceMock.Setup(x => x.HashPassword(request.Password))
+            .Returns(hashedPassword);
         
         _userRepositoryMock.Setup(x => x.InsertAsync(It.IsAny<User>()))
             .Callback<User>(user => capturedUser = user);
@@ -115,9 +126,8 @@ public class CreateUserCommandHandlerTests
         // Assert
         capturedUser.Should().NotBeNull();
         capturedUser!.PasswordHash.Should().NotBe(request.Password);
-        
-        // Verify that the password hash is the expected Base64 encoded value
-        var expectedHash = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"hashed_{request.Password}"));
-        capturedUser.PasswordHash.Should().Be(expectedHash);
+        capturedUser.PasswordHash.Should().Be(hashedPassword);
+
+        _passwordHashingServiceMock.Verify(x => x.HashPassword(request.Password), Times.Once);
     }
 }
