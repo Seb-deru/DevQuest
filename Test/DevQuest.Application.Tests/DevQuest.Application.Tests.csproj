@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\DevQuest.Application\DevQuest.Application.csproj" />
     <ProjectReference Include="..\..\DevQuest.Domain\DevQuest.Domain.csproj" />
+    <ProjectReference Include="..\..\DevQuest.Infrastructure\DevQuest.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

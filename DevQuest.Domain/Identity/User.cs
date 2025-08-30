@@ -9,6 +9,9 @@ public class User
 
     public User(string userName, string email, string passwordHash)
     {
+        if (string.IsNullOrWhiteSpace(userName))
+            throw new ArgumentException("Username cannot be null, empty, or whitespace.", nameof(userName));
+
         UserName = userName;
         Email = email;
         PasswordHash = passwordHash;

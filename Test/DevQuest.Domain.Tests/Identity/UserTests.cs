@@ -37,9 +37,25 @@ public class UserTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void User_Constructor_Should_Accept_Empty_UserName_Values(string userName)
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void User_Constructor_Should_Throw_ArgumentException_When_UserName_Is_Invalid(string userName)
     {
         // Arrange
+        const string email = "test@example.com";
+        const string passwordHash = "hashedpassword123";
+
+        // Act & Assert
+        var exception = Assert.Throws<ArgumentException>(() => new User(userName, email, passwordHash));
+        exception.ParamName.Should().Be("userName");
+        exception.Message.Should().Contain("Username cannot be null, empty, or whitespace.");
+    }
+
+    [Fact]
+    public void User_Constructor_Should_Create_User_With_Valid_UserName()
+    {
+        // Arrange
+        const string userName = "validuser";
         const string email = "test@example.com";
         const string passwordHash = "hashedpassword123";
 
@@ -48,19 +64,5 @@ public class UserTests
 
         // Assert
         user.UserName.Should().Be(userName);
-    }
-
-    [Fact]
-    public void User_Constructor_Should_Handle_Null_UserName()
-    {
-        // Arrange
-        const string email = "test@example.com";
-        const string passwordHash = "hashedpassword123";
-
-        // Act
-        var user = new User(null!, email, passwordHash);
-
-        // Assert
-        user.UserName.Should().BeNull();
     }
 }
