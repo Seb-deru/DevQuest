@@ -13,7 +13,9 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # This is required for actions/checkout
+      checks: write # This is required for publishing test results
+      pull-requests: write # This is required for publishing test results in PRs
 
     steps:
       - uses: actions/checkout@v4
@@ -33,13 +35,12 @@ jobs:
         run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --logger trx --results-directory ./TestResults
 
       - name: Publish test results
-        uses: dorny/test-reporter@v1
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
         if: always()
         with:
-          name: .NET Tests
-          path: './TestResults/*.trx'
-          reporter: dotnet-trx
-          fail-on-error: true
+          files: './TestResults/*.trx'
+          check_name: '.NET Test Results'
+          comment_mode: 'off'
 
       - name: dotnet publish
         run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
@@ -76,4 +77,4 @@ jobs:
         with:
           app-name: 'app-devquest-test-euw'
           slot-name: 'Production'
-          package: .
+          package: .          package: .
