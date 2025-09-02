@@ -1,0 +1,250 @@
+@page "/workitems/{id:guid}/edit"
+@using DevQuest.Application.WorkItems.GetWorkItemById
+@using DevQuest.Application.WorkItems.UpdateWorkItem
+@using DevQuest.BlazorApp.Services
+@inject IWorkItemService WorkItemService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Modifier WorkItem - @(model?.Name ?? "Chargement...")</PageTitle>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="/workitems/@Id" class="btn btn-outline-secondary me-3">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+            <h1>Modifier le WorkItem</h1>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            </div>
+        }
+        else if (model != null)
+        {
+            <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger" />
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nom <span class="text-danger">*</span></label>
+                            <InputText id="name" class="form-control" @bind-Value="model.Name" placeholder="Entrez le nom du WorkItem" />
+                            <ValidationMessage For="@(() => model.Name)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description" placeholder="Entrez une description (optionnel)" />
+                            <ValidationMessage For="@(() => model.Description)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="scheduledDate" class="form-label">Date planifiée</label>
+                            <InputDate id="scheduledDate" class="form-control" @bind-Value="model.ScheduledDate" />
+                            <div class="form-text">Laissez vide si aucune date n'est planifiée</div>
+                            <ValidationMessage For="@(() => model.ScheduledDate)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            <span>Modification en cours...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save me-2"></i>
+                            <span>Enregistrer les modifications</span>
+                        }
+                    </button>
+                    <a href="/workitems/@Id" class="btn btn-secondary ms-2">Annuler</a>
+                    <button type="button" class="btn btn-outline-danger ms-2" @onclick="() => ConfirmDelete(Id, model.Name)">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </div>
+            </EditForm>
+        }
+        else
+        {
+            <div class="alert alert-warning" role="alert">
+                <h4 class="alert-heading">WorkItem non trouvé</h4>
+                <p>Le WorkItem que vous tentez de modifier n'existe pas ou a été supprimé.</p>
+                <hr>
+                <a href="/workitems" class="btn btn-primary">Retour à la liste</a>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-4">
+        @if (originalWorkItem != null)
+        {
+            <div class="card bg-light">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Informations du WorkItem
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Créé le</h6>
+                        <p class="small text-muted">@originalWorkItem.CreatedAt.ToString("dddd, dd MMMM yyyy à HH:mm")</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Dernière modification</h6>
+                        <p class="small text-muted">@originalWorkItem.ModifiedAt.ToString("dddd, dd MMMM yyyy à HH:mm")</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>ID</h6>
+                        <p class="small text-muted font-monospace">@originalWorkItem.Id</p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="card bg-light mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Conseils
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Utilisez un nom descriptif et concis
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Ajoutez une description détaillée pour clarifier les objectifs
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success"></i>
+                        Définissez une date planifiée pour un meilleur suivi
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    private UpdateWorkItemModel? model;
+    private GetWorkItemByIdResponse? originalWorkItem;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWorkItem();
+    }
+
+    private async Task LoadWorkItem()
+    {
+        try
+        {
+            isLoading = true;
+            originalWorkItem = await WorkItemService.GetByIdAsync(Id);
+            
+            if (originalWorkItem != null)
+            {
+                model = new UpdateWorkItemModel
+                {
+                    Id = originalWorkItem.Id,
+                    Name = originalWorkItem.Name,
+                    Description = originalWorkItem.Description,
+                    ScheduledDate = originalWorkItem.ScheduledDate
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors du chargement: {ex.Message}");
+            Navigation.NavigateTo("/workitems");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (model == null) return;
+
+        try
+        {
+            isSubmitting = true;
+            
+            var request = new UpdateWorkItemRequest(
+                model.Id,
+                model.Name,
+                string.IsNullOrWhiteSpace(model.Description) ? null : model.Description,
+                model.ScheduledDate
+            );
+
+            await WorkItemService.UpdateAsync(request);
+            
+            await JSRuntime.InvokeVoidAsync("alert", "WorkItem modifié avec succès!");
+            Navigation.NavigateTo($"/workitems/{Id}");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors de la modification: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task ConfirmDelete(Guid id, string name)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer '{name}' ?");
+        if (confirmed)
+        {
+            await DeleteWorkItem(id);
+        }
+    }
+
+    private async Task DeleteWorkItem(Guid id)
+    {
+        try
+        {
+            await WorkItemService.DeleteAsync(id);
+            await JSRuntime.InvokeVoidAsync("alert", "WorkItem supprimé avec succès!");
+            Navigation.NavigateTo("/workitems");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors de la suppression: {ex.Message}");
+        }
+    }
+
+    public class UpdateWorkItemModel
+    {
+        public Guid Id { get; set; }
+
+        [Required(ErrorMessage = "Le nom est obligatoire")]
+        [StringLength(200, ErrorMessage = "Le nom ne peut pas dépasser 200 caractères")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(2000, ErrorMessage = "La description ne peut pas dépasser 2000 caractères")]
+        public string? Description { get; set; }
+
+        public DateTime? ScheduledDate { get; set; }
+    }
+}

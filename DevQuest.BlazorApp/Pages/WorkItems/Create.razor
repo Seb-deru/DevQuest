@@ -1,0 +1,127 @@
+@page "/workitems/create"
+@using DevQuest.Application.WorkItems.CreateWorkItem
+@using DevQuest.BlazorApp.Services
+@inject IWorkItemService WorkItemService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Créer un WorkItem</PageTitle>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="/workitems" class="btn btn-outline-secondary me-3">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+            <h1>Créer un nouveau WorkItem</h1>
+        </div>
+
+        <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="alert alert-danger" />
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nom <span class="text-danger">*</span></label>
+                        <InputText id="name" class="form-control" @bind-Value="model.Name" placeholder="Entrez le nom du WorkItem" />
+                        <ValidationMessage For="@(() => model.Name)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description" placeholder="Entrez une description (optionnel)" />
+                        <ValidationMessage For="@(() => model.Description)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="scheduledDate" class="form-label">Date planifiée</label>
+                        <InputDate id="scheduledDate" class="form-control" @bind-Value="model.ScheduledDate" />
+                        <div class="form-text">Laissez vide si aucune date n'est planifiée</div>
+                        <ValidationMessage For="@(() => model.ScheduledDate)" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span>Création en cours...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-save me-2"></i>
+                        <span>Créer le WorkItem</span>
+                    }
+                </button>
+                <a href="/workitems" class="btn btn-secondary ms-2">Annuler</a>
+            </div>
+        </EditForm>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Aide
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6>Nom du WorkItem</h6>
+                <p class="small text-muted">Le nom est obligatoire et doit être descriptif de la tâche à effectuer.</p>
+                
+                <h6>Description</h6>
+                <p class="small text-muted">Ajoutez des détails sur ce qui doit être fait, les critères d'acceptation, etc.</p>
+                
+                <h6>Date planifiée</h6>
+                <p class="small text-muted">Définissez une date limite ou une date de début prévue pour ce WorkItem.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateWorkItemModel model = new();
+    private bool isSubmitting = false;
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            isSubmitting = true;
+            
+            var request = new CreateWorkItemRequest(
+                model.Name,
+                string.IsNullOrWhiteSpace(model.Description) ? null : model.Description,
+                model.ScheduledDate
+            );
+
+            var response = await WorkItemService.CreateAsync(request);
+            
+            await JSRuntime.InvokeVoidAsync("alert", "WorkItem créé avec succès!");
+            Navigation.NavigateTo("/workitems");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors de la création: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    public class CreateWorkItemModel
+    {
+        [Required(ErrorMessage = "Le nom est obligatoire")]
+        [StringLength(200, ErrorMessage = "Le nom ne peut pas dépasser 200 caractères")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(2000, ErrorMessage = "La description ne peut pas dépasser 2000 caractères")]
+        public string? Description { get; set; }
+
+        public DateTime? ScheduledDate { get; set; }
+    }
+}

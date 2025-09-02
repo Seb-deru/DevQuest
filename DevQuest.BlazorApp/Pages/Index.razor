@@ -1,7 +1,152 @@
 ﻿@page "/"
+@using DevQuest.BlazorApp.Services
+@inject IWorkItemService WorkItemService
 
-<PageTitle>DevQuest</PageTitle>
+<PageTitle>DevQuest - Accueil</PageTitle>
 
-<h1>Bienvenue sur DevQuest</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white rounded p-5 mb-4">
+                <div class="container-fluid py-5">
+                    <h1 class="display-4">Bienvenue sur DevQuest</h1>
+                    <p class="lead">Votre plateforme de gestion de WorkItems pour organiser et suivre vos tâches efficacement.</p>
+                    <hr class="my-4">
+                    <p>Commencez par créer votre premier WorkItem ou consultez la liste existante.</p>
+                    <a class="btn btn-light btn-lg" href="/workitems" role="button">
+                        <i class="fas fa-tasks"></i> Voir les WorkItems
+                    </a>
+                    <a class="btn btn-outline-light btn-lg ms-2" href="/workitems/create" role="button">
+                        <i class="fas fa-plus"></i> Nouveau WorkItem
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<p>Votre application Blazor est prête !</p>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Créer</h5>
+                    <p class="card-text">Créez facilement de nouveaux WorkItems avec nom, description et date planifiée.</p>
+                    <a href="/workitems/create" class="btn btn-primary">Créer un WorkItem</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-list fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Gérer</h5>
+                    <p class="card-text">Consultez, modifiez et organisez tous vos WorkItems depuis une interface intuitive.</p>
+                    <a href="/workitems" class="btn btn-success">Voir la liste</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Suivre</h5>
+                    <p class="card-text">Surveillez l'avancement de vos tâches avec les dates planifiées et les statuts.</p>
+                    <a href="/workitems" class="btn btn-info">Tableau de bord</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Statistiques rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (statistics != null)
+                    {
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-primary">@statistics.TotalWorkItems</h3>
+                                    <p class="text-muted mb-0">Total WorkItems</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-info">@statistics.ScheduledWorkItems</h3>
+                                    <p class="text-muted mb-0">Planifiés</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-warning">@statistics.OverdueWorkItems</h3>
+                                    <p class="text-muted mb-0">En retard</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <h3 class="text-success">@statistics.TodayWorkItems</h3>
+                                    <p class="text-muted mb-0">Aujourd'hui</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Chargement des statistiques...</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private WorkItemStatistics? statistics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatistics();
+    }
+
+    private async Task LoadStatistics()
+    {
+        try
+        {
+            var response = await WorkItemService.GetAllAsync();
+            var workItems = response.WorkItems.ToList();
+            var today = DateTime.Now.Date;
+
+            statistics = new WorkItemStatistics
+            {
+                TotalWorkItems = workItems.Count,
+                ScheduledWorkItems = workItems.Count(w => w.ScheduledDate.HasValue),
+                OverdueWorkItems = workItems.Count(w => w.ScheduledDate.HasValue && w.ScheduledDate.Value.Date < today),
+                TodayWorkItems = workItems.Count(w => w.ScheduledDate.HasValue && w.ScheduledDate.Value.Date == today)
+            };
+        }
+        catch
+        {
+            // En cas d'erreur, on affiche des statistiques par défaut
+            statistics = new WorkItemStatistics();
+        }
+    }
+
+    public class WorkItemStatistics
+    {
+        public int TotalWorkItems { get; set; }
+        public int ScheduledWorkItems { get; set; }
+        public int OverdueWorkItems { get; set; }
+        public int TodayWorkItems { get; set; }
+    }
+}

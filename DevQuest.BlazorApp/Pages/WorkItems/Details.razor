@@ -1,0 +1,225 @@
+@page "/workitems/{id:guid}"
+@using DevQuest.Application.WorkItems.GetWorkItemById
+@using DevQuest.BlazorApp.Services
+@inject IWorkItemService WorkItemService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>WorkItem - @(workItem?.Name ?? "Chargement...")</PageTitle>
+
+<div class="d-flex align-items-center mb-4">
+    <a href="/workitems" class="btn btn-outline-secondary me-3">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+    <h1>Détails du WorkItem</h1>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Chargement...</span>
+        </div>
+    </div>
+}
+else if (workItem != null)
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">@workItem.Name</h3>
+                    <div class="btn-group" role="group">
+                        <a href="/workitems/@workItem.Id/edit" class="btn btn-outline-primary">
+                            <i class="fas fa-edit"></i> Modifier
+                        </a>
+                        <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(workItem.Id, workItem.Name)">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(workItem.Description))
+                    {
+                        <div class="mb-4">
+                            <h5>Description</h5>
+                            <div class="border rounded p-3 bg-light">
+                                @((MarkupString)workItem.Description.Replace("\n", "<br>"))
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4">
+                            <h5>Description</h5>
+                            <em class="text-muted">Aucune description fournie</em>
+                        </div>
+                    }
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Date de création</h6>
+                            <p class="text-muted">@workItem.CreatedAt.ToString("dddd, dd MMMM yyyy à HH:mm")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Dernière modification</h6>
+                            <p class="text-muted">@workItem.ModifiedAt.ToString("dddd, dd MMMM yyyy à HH:mm")</p>
+                        </div>
+                    </div>
+
+                    @if (workItem.ScheduledDate.HasValue)
+                    {
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-calendar-alt"></i>
+                            <strong>Date planifiée :</strong> @workItem.ScheduledDate.Value.ToString("dddd, dd MMMM yyyy")
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Informations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>ID :</span>
+                        <small class="text-muted font-monospace">@workItem.Id</small>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Statut :</span>
+                        @if (workItem.ScheduledDate.HasValue)
+                        {
+                            @if (workItem.ScheduledDate.Value.Date < DateTime.Now.Date)
+                            {
+                                <span class="badge bg-warning">En retard</span>
+                            }
+                            else if (workItem.ScheduledDate.Value.Date == DateTime.Now.Date)
+                            {
+                                <span class="badge bg-info">Aujourd'hui</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Planifié</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Non planifié</span>
+                        }
+                    </div>
+
+                    @if (workItem.ScheduledDate.HasValue)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Jours restants :</span>
+                            @{
+                                var daysRemaining = (workItem.ScheduledDate.Value.Date - DateTime.Now.Date).Days;
+                            }
+                            @if (daysRemaining < 0)
+                            {
+                                <span class="text-danger">@Math.Abs(daysRemaining) jour(s) de retard</span>
+                            }
+                            else if (daysRemaining == 0)
+                            {
+                                <span class="text-warning">Aujourd'hui</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">@daysRemaining jour(s)</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cogs"></i> Actions rapides
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/workitems/@workItem.Id/edit" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Modifier ce WorkItem
+                        </a>
+                        <a href="/workitems/create" class="btn btn-outline-success">
+                            <i class="fas fa-plus"></i> Créer un nouveau WorkItem
+                        </a>
+                        <button class="btn btn-outline-danger" @onclick="() => ConfirmDelete(workItem.Id, workItem.Name)">
+                            <i class="fas fa-trash"></i> Supprimer ce WorkItem
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">WorkItem non trouvé</h4>
+        <p>Le WorkItem que vous recherchez n'existe pas ou a été supprimé.</p>
+        <hr>
+        <a href="/workitems" class="btn btn-primary">Retour à la liste</a>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    
+    private GetWorkItemByIdResponse? workItem;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWorkItem();
+    }
+
+    private async Task LoadWorkItem()
+    {
+        try
+        {
+            isLoading = true;
+            workItem = await WorkItemService.GetByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors du chargement: {ex.Message}");
+            Navigation.NavigateTo("/workitems");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmDelete(Guid id, string name)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer '{name}' ?");
+        if (confirmed)
+        {
+            await DeleteWorkItem(id);
+        }
+    }
+
+    private async Task DeleteWorkItem(Guid id)
+    {
+        try
+        {
+            await WorkItemService.DeleteAsync(id);
+            await JSRuntime.InvokeVoidAsync("alert", "WorkItem supprimé avec succès!");
+            Navigation.NavigateTo("/workitems");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Erreur lors de la suppression: {ex.Message}");
+        }
+    }
+}

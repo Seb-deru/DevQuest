@@ -4,7 +4,7 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
     <link href="css/site.css" rel="stylesheet" />
     <link href="DevQuest.BlazorApp.styles.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="icon" type="image/png" href="favicon.png"/>
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
@@ -20,12 +21,12 @@
 
     <div id="blazor-error-ui">
         <environment include="Staging,Production">
-            An error has occurred. This application may no longer respond until reloaded.
+            Une erreur s'est produite. Cette application peut ne plus répondre jusqu'au rechargement.
         </environment>
         <environment include="Development">
-            An unhandled exception has occurred. See browser dev tools for details.
+            Une exception non gérée s'est produite. Consultez les outils de développement du navigateur pour plus de détails.
         </environment>
-        <a href="" class="reload">Reload</a>
+        <a href="" class="reload">Recharger</a>
         <a class="dismiss">🗙</a>
     </div>
 

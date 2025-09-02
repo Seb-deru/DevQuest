@@ -1,11 +1,21 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using DevQuest.BlazorApp.Services;
+using DevQuest.Application;
+using DevQuest.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+// Add Application and Infrastructure services
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
+
+// Add Blazor services
+builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 
 var app = builder.Build();
 
